@@ -1,0 +1,29 @@
+#include<stdio.h>
+#include<math.h>
+#include<sndfile.h>
+
+int main(){
+  double snd;
+  int time=0;
+
+  char *name = "kenbun.wav";
+  SF_INFO sfo;
+  SNDFILE *sf = sf_open(name ,SFM_READ , &sfo);
+
+  if(sf == NULL){
+    perror("can't open the file.");
+    return 1;
+  }
+  
+  while(1){
+    if( (int)sf_read_double(sf, &snd, 1) < 1){
+      break;
+    }
+    printf("%lf\t%lf\n",(double)time/sfo.samplerate * 1000, snd);
+    time++;
+  }
+
+  sf_close(sf);
+
+  return 0;
+}

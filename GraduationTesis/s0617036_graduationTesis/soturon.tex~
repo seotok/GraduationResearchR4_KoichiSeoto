@@ -1,0 +1,484 @@
+\documentclass[a4paper,12pt,titlepage]{jsreport}
+\usepackage{bm}
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{ascmac}
+\usepackage{url}
+
+\usepackage{amsmath, amssymb}
+
+\usepackage[subrefformat=parens]{subcaption}
+\usepackage{pdfpages}
+
+%%% ヘッダに章とページ番号を記載
+\pagestyle{headings}
+
+\title{卒業論文\\リップノイズの自動検出及び除去に関する検討}
+\author{岩手大学理工学部システム創成工学科\\知能・メディア情報コース\\永田研究室\\S0617036　高谷恒輝}
+\date{}
+
+\begin{document}
+
+%%%% タイトル
+\maketitle
+%%%% 目次
+\tableofcontents
+
+%%%%% はじめに
+\chapter{はじめに}
+
+リップノイズとは、人間の口からの発生音の一つである。その音は「ネチャ」「ペチャ」といった語で形容され、聞き手にとって不快感を与え得る。特に近年はオンライン通話や動画教材等が増えており、リップノイズを耳にすることが多くなった。
+リップノイズの検出及び除去は、人間の耳に頼った人手による修正が主流である。しかし、頻繁に発生しうるリップノイズを聞き分け、各ノイズにそれぞれ対応して手直しするコストは大きい。
+
+リップノイズは音声認識や音声区間検出の妨げとなる場合もあり、多くの研究では無音声区間のリップノイズを閾値処理で棄却する方法が取られていた\cite{lipomit}。この方法では音声区間のリップノイズが検出できない他、無音声の区間であってもリップノイズか否かは特定できない。
+一方、リップノイズの検出・除去用ソフトウェアとしてiZotope RX\cite{RX}が販売されているが、その手法やアルゴリズムは明らかにされていない。
+
+本研究ではリップノイズの特徴について分析し、リップノイズの自動検出及び除去に関する基礎的検討を行った。
+%本研究が目指す処理枠組みを図\ref{chap1:shori}に示す。
+
+
+%\begin{figure}[t]
+%  \begin{center} %センタリングする
+%    %\documentclass[dvipdfmx]{jsarticle}
+%    %\usepackage[dvipdfmx]{graphicx}
+%    \includegraphics[width=12cm,pagebox=cropbox,clip]{soturonfig1-crop.pdf}
+%    \caption{リップノイズ検出・除去器の処理枠組み} %タイトルをつける
+%    \label{chap1:shori} %ラベルをつけ図の参照を可能にする
+%  \end{center}
+%\end{figure}
+
+
+%%%% リップノイズの分析
+\chapter{リップノイズの分析}
+本章ではリップノイズの特徴について、スペクトログラムおよび音声波形を用いて説明する。また、微小なリップノイズを検出しやすくするために、音声信号をLPC残差信号に変換し、音声信号をそのまま用いた場合との比較を行う。
+なお、解析には話速バリエーション型音声データベースSRV-DB\cite{svrdb}を使用した。
+
+\section{音声波形上のリップノイズ}
+リップノイズを含む音声波形を図\ref{fig:lip_snd}に示す。\subref{fig:PF00_muon}は無音声区間で発生したリップノイズ、\subref{fig:PF001}〜\subref{fig:PM002}四角部分は音声区間で発生したリップノイズである。
+これより、約2msの区間で微小なノイズが発生していることが確認できる。用いたデータベース内のデータにおいては、平均約1.7ms、約0.4ms〜8msのリップノイズが発生していた。
+また、発生箇所によってノイズの波形が異なることがわかる。
+
+\section{スペクトログラムによる分析}
+図\ref{fig:lip_sp}は、女声「記憶の」と発声している区間のスペクトログラムである。図中の四角部分がリップノイズであり、発生箇所ではインパルスに似た短時間の広帯域ノイズのスペクトルが見られる。
+リップノイズは、図\ref{fig:lip_snd}\subref{fig:PF00_muon}のように無音声区間で発生した場合、スペクトログラムの目視により比較的簡単に確認が可能であるが、振幅が小さいため\subref{fig:PF001}〜\subref{fig:PM002}のように音声区間で発生すると音声の特徴に紛れ、確認は難しくなる。
+
+\section{LPC残差信号による分析}
+リップノイズは振幅が小さいため、母音等の大振幅成分によって検出が難しくなる。一方、リップノイズは比較的声道関数の影響を受けにくい信号であると考えられるので、その影響を除くためLPC残差信号からの検出を検討した。LPC次数$p=20$における図\ref{fig:lip_snd}のLPC残差信号を図\ref{fig:lip_zansa}に示す。\subref{fig:PF00_muon}のような無音声区間におけるリップノイズは残った上で、音声に紛れていた\subref{fig:PF001}〜\subref{fig:PM002}は無音声区間に発生したリップノイズのような波形に変換されている。
+図\ref{fig:lip_sp}の音声区間における残差信号スペクトルを図\ref{fig:lip_sp_zansa}に示す。人間の声が含まれる0〜3kHz帯の信号が低減され、僅かではあるが音声区間内で発生したリップノイズの特徴が残っていることが分かる。
+
+\clearpage
+
+\begin{figure}[t]
+  \begin{center} %センタリングする
+    \begin{minipage}[b]{0.45\linewidth}
+      \centering
+      \includegraphics[clip,width=5cm]{PF00yokou_muonsei.eps}
+      \subcaption{PF00 無音声区間}\label{fig:PF00_muon}
+    \end{minipage}
+    \begin{minipage}[b]{0.45\linewidth}
+      \centering
+      \includegraphics[clip,width=5cm]{PF00yokou1.eps}
+      \subcaption{PF00 ''no''}\label{fig:PF001}
+    \end{minipage}\\
+    
+    \begin{minipage}[b]{0.45\linewidth}
+      \centering
+      \includegraphics[clip,width=5cm]{PM00yokou1.eps}
+      \subcaption{PM00 ''e-ki''}\label{fig:PM001}
+    \end{minipage}
+    \begin{minipage}[b]{0.45\linewidth}
+      \centering
+      \includegraphics[clip,width=5cm]{PM00yokou2.eps}
+      \subcaption{PM00 ''i-ga''}\label{fig:PM002}
+    \end{minipage}
+    %\includegraphics[clip,width=8cm]{PF00yokou1.eps} %四角つける
+    \caption{リップノイズを含む音声波形} %タイトルをつける
+    \label{fig:lip_snd} %ラベルをつけ図の参照を可能にする
+  \end{center}
+\end{figure}
+
+\begin{figure}[t]
+  \begin{center} %センタリングする
+    %\documentclass[dvipdfmx]{jsarticle}
+    %\usepackage[dvipdfmx]{graphicx}
+    \includegraphics[width=10cm,pagebox=cropbox,clip]{lipspec_zu-crop.pdf}
+    \caption{リップノイズを含む音声スペクトログラム} %タイトルをつける
+    \label{fig:lip_sp} %ラベルをつけ図の参照を可能にする
+  \end{center}
+\end{figure}
+
+\clearpage
+
+\begin{figure}[t]
+  \begin{center} %センタリングする
+    \begin{minipage}[b]{0.45\linewidth}
+      \centering
+      \includegraphics[clip,width=5cm]{PF00yokou_muonsei_zansa_20_5.eps}
+      \subcaption{PF00 無音声区間}\label{fig:PF00_muon_zansa}
+    \end{minipage}
+    \begin{minipage}[b]{0.45\linewidth}
+      \centering
+      \includegraphics[clip,width=5cm]{PF00yokou1_zansa_20_5.eps}
+      \subcaption{PF00 ''no''}\label{fig:PF001_zansa}
+    \end{minipage}\\
+    
+    \begin{minipage}[b]{0.45\linewidth}
+      \centering
+      \includegraphics[clip,width=5cm]{PM00yokou1_zansa_20_5.eps}
+      \subcaption{PM00 ''e-ki''}\label{fig:PM001_zansa}
+    \end{minipage}
+    \begin{minipage}[b]{0.45\linewidth}
+      \centering
+      \includegraphics[clip,width=5cm]{PM00yokou2_zansa_20_5.eps}
+      \subcaption{PM00 ''i-ga''}\label{fig:PM002_zansa}
+    \end{minipage}
+    %\includegraphics[clip,width=8cm]{PF00yokou1.eps} %四角つける
+    \caption{図\ref{fig:lip_snd}の残差信号波形} %タイトルをつける
+    \label{fig:lip_zansa} %ラベルをつけ図の参照を可能にする
+  \end{center}
+\end{figure}
+
+
+\begin{figure}[t]
+  \begin{center} %センタリングする
+    %\documentclass[dvipdfmx]{jsarticle}
+    %\usepackage[dvipdfmx]{graphicx}
+    \includegraphics[width=10cm,pagebox=cropbox,clip]{lipspec_zansa_zu-crop.pdf}
+    \caption{図\ref{fig:lip_sp}の残差信号スペクトログラム} %タイトルをつける
+    \label{fig:lip_sp_zansa} %ラベルをつけ図の参照を可能にする
+  \end{center}
+\end{figure}
+
+%%%% リップノイズの検出
+\chapter{リップノイズの検出}\label{chap3}
+
+\section{検出方法}\label{chap3:method}
+本研究で用いた、リップノイズ検出処理の枠組みを図\ref{fig3:wakugumi}\subref{fig3:wakugumi-snd},\subref{fig3:wakugumi-LPC}に示す。図\ref{fig3:wakugumi}の\subref{fig3:wakugumi-snd},\subref{fig3:wakugumi-LPC}は、それぞれ、\\
+\subref{fig3:wakugumi-snd} 音声信号のパワースペクトルを特徴ベクトルとする場合、\\
+\subref{fig3:wakugumi-LPC} 音声信号からLPC残差信号を求め、そのパワースペクトルを特徴ベクトルとする場合\\
+である。
+どちらも検出結果の出力は\{0,1\}とし、リップノイズを検出した場合は1、それ以外の場合は0とした。
+
+リップノイズ区間の自動検出のため、機械学習を適用するものとする。しかし、リップノイズのラベリングデータは存在しないため、聴感および目視により検出し、ラベル付与を行った。
+このとき、リップノイズ区間が非リップノイズ区間より大幅に少ないため、学習に際しては非リップノイズ区間に無音声区間に発生したリップノイズを付加して教師データを増量した。
+教師データの内容を表\ref{tab3:data}\subref{tab3:learndata}に示す。
+
+機械学習の方式に関しては、二者択一の判別によく用いられるSVMを用いた。信号の分析条件および用いたSVMのライブラリ等は次の通りである。
+
+\begin{itemize}
+\item サンプリングレート：44100Hz
+\item フレーム長：128点
+\item フレームオーバーラップ：64点
+\item 言語：Python 3.8.5
+\item ライブラリ：scikit-learn 0.23.2、librosa 0.8.0
+\item 特徴ベクトル：パワースペクトル65点
+\end{itemize}
+
+フレーム内でリップノイズのラベルが付与されている区間長のフレーム長に対する割合を求め、その値が予め定めたしきい値$\alpha$を超える場合は1、超えない場合は0と教師ラベルを設定した。
+また、本研究で用いるSVMではRBFカーネル
+\begin{math}
+K(\bm{X_i}, \bm{X_j}) = \exp(-\gamma||\bm{X_i} - \bm{X_j}||^{2})
+\end{math}
+を適用し、$\gamma=2^{n} (n \in \mathbb{Z}, -10 \le n \le 2)$として学習を行った。
+
+テストデータは表\ref{tab3:data}\subref{tab3:testdata}に示す音声データを用いた。この音声に含まれるリップノイズは全体の約2％である。テストデータにおける非リップノイズフレームの占有率は98\%と大多数を占めるため、この正答率だけでは占有率の少ないリップノイズの検出率として参照することはできない。そのため、テストの際には全区間における正答率だけでなく、対象別（リップノイズ・非リップノイズ）の正答率も算出した。
+
+\section{原音声を入力とした検出}\label{chap3:snd}
+まず、原音声の信号を入力とする検出テストを行った。
+検出テストの結果を図\ref{fig3:SVM-snd}に示す。図\ref{fig3:SVM-snd}において、x軸はしきい値$\alpha$、y軸は$\gamma$であり、検出率を色分けして示している。
+しきい値$\alpha$が増えると、図\ref{fig3:SVM-snd}\subref{fig3:snd-lip}よりリップノイズ区間の検出率が減少し、図\ref{fig3:SVM-snd}\subref{fig3:snd-nlip}より非リップノイズの検出率が増加していることがわかる。また、y軸方向に注目すると、検出率は$\gamma=2^{-3}$のときを頂点とした単峰性の山になっていることが分かる。
+また、\subref{fig3:snd-lipnlip}と\subref{fig3:snd-nlip}の特徴が似ていることから、全区間の検出率は非リップノイズ区間の検出率に大きく影響されることが分かる。全区間の検出率が著しく高い条件下では非リップノイズのみの検出率が高い場合が多く、\subref{fig3:snd-lipnlip}のみではリップノイズの検出精度を検討することはできないことがわかる。
+
+次に、テストを行った際に高い正答率(リップノイズ正答率・非リップノイズ正答率がともに高い)が得られた条件及び正答率を表\ref{tab3:snd-tab}に示す。\subref{tab3:snd-all}より、テスト結果は約74.2\%であった。
+また、リップノイズフレームのみを参照した正答率は、同じく\subref{tab3:snd-all}より、約66.9\%であった。テストデータ内のリップノイズフレームの占有率は約2\%であるため、ある程度の識別ができたといえる。
+表\ref{tab3:snd-tab}\subref{tab3:snd-snd}は、位置別(音声区間内・無音声区間内)におけるリップノイズ・非リップノイズの正答率を示している。これより、音声区間内のリップノイズ正答率が50.7\%と低いことが分かる。このことから、原音声の影響をできるだけ除いて検出を行う必要があると考えられる。
+
+\section{LPC残差信号を入力とした検出}\label{chap3:LPC}
+リップノイズは舌先など比較的口の外に近いところで発生するため、音声成分に比べると声道関数の影響が小さいものと考えられる。そこで、声道の影響を除くため、LPC残差信号を入力としたリップノイズ検出を検討する。本研究では予備検討によりLPC次数$p=20$とし、\ref{chap3:snd}節の原音声の代わりにLPC残差信号を用いた上で、同じ条件で検出テストを行った。
+
+テストの結果を図\ref{fig3:SVM-LPC}に示す。これより、図\ref{fig3:SVM-snd}の原音声のときと似た特徴が見られるが、リップノイズ区間を対象にした検出率の\subref{fig3:LPC-lip}を比べるとリップノイズ検出率の大幅に向上していることが分かる。
+次に、テストを行った際に高い正答率が得られた条件及び正答率を表\ref{tab3:LPC-tab}に示す。表\ref{tab3:LPC-tab}\subref{tab3:LPC-all}より、全区間トータルのテスト結果は約82.3\%であった。
+リップノイズフレームのみを参照した正答率は、同じく\subref{tab3:LPC-all}より、約83.2\%であった。\ref{chap3:snd}節の検出結果と比べ、検出精度が向上していることが分かる。
+\subref{tab3:LPC-snd}は、位置別(音声区間内・無音声区間内)におけるリップノイズ・非リップノイズの正答率を示している。これより、原音声を入力とした識別のときと同様、音声区間内のリップノイズ、無音声区間の非リップノイズの正答率が低いことが分かる。
+
+\section{考察}\label{chap3:kousatu}
+テストの際に検出された検出区間の例を図\ref{fig3:detecexPF01}、図\ref{fig3:detecexAM00}に示す。これらは、表\ref{tab3:LPC-tab}のLPC残差信号を入力としたしきい値$\alpha=0.40, \gamma=2^{-9}$のときの検出結果である。
+
+図\ref{fig3:detecexPF01}は、表\ref{tab3:data}\subref{tab3:testdata}におけるPF01の無音声区間における検出結果であり、スペクトログラム、教師ラベルの設定区間、SVMによる検出区間を合わせて示してある。
+これより、無音声区間の背景ノイズに対する誤認識（湧き出し）が多いことが確認できる。これは学習時のデータにおいても同様な背景ノイズが確認されたので、学習データによる影響と考えられる。
+このことから、無音声区間でリップノイズを正確に検出するには背景ノイズを考慮した学習が必要であると考えられる。
+
+次に、表\ref{tab3:data}\subref{tab3:testdata}におけるAM00の「s」の発音時の検出結果を図\ref{fig3:detecexAM00}に示す。これより、子音の発音で誤認識が発生していることが確認できる。
+また、この区間以外にもカ・サ・ハ行の子音の発音で誤認識が多いことが確認された。
+これらの発音はリップノイズに比べて明らかに発音される時間長が長いため、リップノイズ検出時に子音や検出時間長を考慮することによってこのような誤認識を低減できる可能性があると考えられる。
+
+%\clearpage
+
+\begin{figure}[ht]
+  \begin{center} %センタリングする
+    \begin{minipage}[b]{1\linewidth}
+      \centering
+      \includegraphics[height=1cm,pagebox=cropbox,clip]{soturonfig4-2-crop.pdf}
+      \subcaption{リップノイズ検出処理の枠組み(原音声信号の場合)} %タイトルをつける
+      \label{fig3:wakugumi-snd} %ラベルをつけ図の参照を可能にする
+    \end{minipage}\\
+    \begin{minipage}[b]{1\linewidth}
+      \centering
+      \includegraphics[height=2.5cm,pagebox=cropbox,clip]{soturonfig4-crop.pdf}
+      \subcaption{リップノイズ検出処理の枠組み(LPC残差信号の場合)} %タイトルをつける
+      \label{fig3:wakugumi-LPC} %ラベルをつけ図の参照を可能にする
+    \end{minipage}
+    \caption{リップノイズ検出の処理枠組み} %タイトルをつける
+    \label{fig3:wakugumi} %ラベルをつけ図の参照を可能にする
+  \end{center}
+\end{figure}
+
+
+\begin{table}[ht]
+  \begin{center}
+    \caption{教師データおよびテストデータ}
+    \label{tab3:data}
+    \begin{minipage}[b]{0.47\linewidth}
+      \subcaption{教師データ}
+      \label{tab3:learndata}
+      \begin{tabular}{c||c|c}
+        & PF00 & PM00  \\ \hline
+        性別 & 女 & 男   \\
+        時間 & 14.35[s] & 12.67[s] \\
+        ラベル付与数 & 161 & 147 \\
+        ノイズ追加数 & 2266 & 1879 \\
+      \end{tabular}
+    \end{minipage}
+    \begin{minipage}[b]{0.47\linewidth}
+      \subcaption{テストデータ}
+      \label{tab3:testdata}
+      \begin{tabular}{c||c|c}
+        & PF01 & AM00 \\ \hline
+        性別 & 女 & 男   \\
+        時間 & 3.74[s] & 6.35[s] \\
+        ラベル付与数 & 107 & 30 \\ 
+      \end{tabular}
+    \end{minipage}
+  \end{center}
+\end{table}
+
+\clearpage
+
+\begin{figure}[t]
+  \begin{center} %センタリングする
+    \begin{minipage}[b]{0.32\linewidth}
+      \centering
+      \includegraphics[width=4.3cm]{svmtest_128_both_mizumasi3_0_svmtest_sound_35to45_all.eps}
+      \subcaption{全区間}\label{fig3:snd-lipnlip}
+    \end{minipage}
+    \begin{minipage}[b]{0.32\linewidth}
+      \centering
+      \includegraphics[width=4.3cm]{svmtest_128_both_mizumasi3_0_svmtest_sound_35to45_lip.eps}
+      \subcaption{リップノイズ区間}\label{fig3:snd-lip}
+    \end{minipage}
+    \begin{minipage}[b]{0.32\linewidth}
+      \centering
+      \includegraphics[width=4.3cm]{svmtest_128_both_mizumasi3_0_svmtest_sound_35to45_nlip.eps}
+      \subcaption{非リップノイズ区間}\label{fig3:snd-nlip}
+    \end{minipage}
+    \caption{音声信号を入力としたSVMの正答率} %タイトルをつける
+    \label{fig3:SVM-snd} %ラベルをつけ図の参照を可能にする
+  \end{center}
+\end{figure}
+
+\begin{table}[ht]
+  \begin{center}
+    \caption{音声信号を入力としたSVMの正答率(しきい値0.36, $\gamma=2^{-4}$)}
+    \label{tab3:snd-tab}
+    \begin{minipage}[t]{1\linewidth}
+      \subcaption{対象別の正答率}
+      \label{tab3:snd-all}
+      \centering
+      \begin{tabular}{c|c||c|c|c}
+        しきい値 & $\gamma$ & 全区間 & リップノイズ & 非リップノイズ  \\ \hline
+        0.36 & $2^{-4}$ & 74.2\% & 66.9\% & 74.4\%  \\
+      \end{tabular}
+    \end{minipage} \\
+    
+    \begin{minipage}[ht]{1\linewidth}
+      \subcaption{位置別の正答率}
+      \label{tab3:snd-snd}
+      \centering
+      \begin{tabular}{c|c||c|c|c|c}
+        \multicolumn{2}{c||}{} & \multicolumn{2}{c|}{音声区間} & \multicolumn{2}{|c}{無音声区間}\\ \hline
+        しきい値 & $\gamma$ & リップノイズ & 非リップノイズ & リップノイズ & 非リップノイズ  \\ \hline
+        0.36 & $2^{-4}$ & 50.7\% & 83.4\% & 80.0\% & 57.1\%  \\
+      \end{tabular}
+    \end{minipage}
+  \end{center}
+\end{table}
+
+\clearpage
+
+\begin{figure}[t]
+  \begin{center} %センタリングする
+    \begin{minipage}[t]{0.32\linewidth}
+      \centering
+      \includegraphics[width=4.3cm]{svmtest_128_both_mizumasi3_0_svmtest_zansa_35to45_all.eps}
+      \subcaption{全区間}\label{fig3:LPC-lipnlip}
+    \end{minipage}
+    \begin{minipage}[t]{0.32\linewidth}
+      \centering
+      \includegraphics[width=4.3cm]{svmtest_128_both_mizumasi3_0_svmtest_zansa_35to45_lip.eps}
+      \subcaption{リップノイズ区間}\label{fig3:LPC-lip}
+    \end{minipage}
+    \begin{minipage}[t]{0.32\linewidth}
+      \centering
+      \includegraphics[width=4.3cm]{svmtest_128_both_mizumasi3_0_svmtest_zansa_35to45_nlip.eps}
+      \subcaption{非リップノイズ区間}\label{fig3:LPC-nlip}
+    \end{minipage}
+    \caption{LPC残差信号を入力としたSVMの正答率} %タイトルをつける
+    \label{fig3:SVM-LPC} %ラベルをつけ図の参照を可能にする
+  \end{center}
+\end{figure}
+
+\begin{table}[ht]
+  \begin{center}
+    \caption{LPC残差信号を入力としたSVMの正答率(しきい値0.40, $\gamma=2^{-9}$)}
+    \label{tab3:LPC-tab}
+    \begin{minipage}[t]{1\linewidth}
+      \subcaption{対象別の正答率}
+      \label{tab3:LPC-all}
+      \centering
+      \begin{tabular}{c|c||c|c|c}
+        しきい値 & $\gamma$ & 全区間 & リップノイズ & 非リップノイズ  \\ \hline
+        0.40 & $2^{-9}$ & 82.3\% & 83.2\% & 82.3\%  \\
+      \end{tabular}
+    \end{minipage} \\
+    
+    \begin{minipage}[t]{1\linewidth}
+      \subcaption{位置別の正答率}
+      \label{tab3:LPC-snd}
+      \centering
+      \begin{tabular}{c|c||c|c|c|c}
+        \multicolumn{2}{c||}{} & \multicolumn{2}{c|}{音声区間} & \multicolumn{2}{|c}{無音声区間}\\ \hline
+        しきい値 & $\gamma$ & リップノイズ & 非リップノイズ & リップノイズ & 非リップノイズ  \\ \hline
+        0.40 & $2^{-9}$ & 71.7\% & 91.3\% & 92.2\% & 65.2\%  \\
+      \end{tabular}
+    \end{minipage}
+  \end{center}
+\end{table}
+
+\clearpage
+
+\begin{figure}[t]
+  \begin{center} %センタリングする
+    \includegraphics[height=7cm,pagebox=cropbox,clip]{soturonfig6-crop.pdf}
+    \caption{リップノイズ検出例(PF01)} %タイトルをつける
+    \label{fig3:detecexPF01} %ラベルをつけ図の参照を可能にする
+  \end{center}
+\end{figure}
+
+\begin{figure}[ht]
+  \begin{center} %センタリングする
+    \includegraphics[height=7cm,pagebox=cropbox,clip]{soturonfig5-crop.pdf}
+    \caption{リップノイズ検出例(AM00)} %タイトルをつける
+    \label{fig3:detecexAM00} %ラベルをつけ図の参照を可能にする
+  \end{center}
+\end{figure}
+
+%%%% リップノイズの除去
+\chapter{リップノイズの除去}
+リップノイズの検出後は、それを除去する必要がある。リップノイズの除去方法としてメジアンフィルタを用いた除去法が提案されている\cite{repair}。
+本章ではメジアンフィルタを適用したリップノイズ除去を検討する。
+
+\section{除去方法}
+除去方法を図\ref{chap4:shori}に示す。\ref{chap3}章においてリップノイズを検出した場合、そのフレーム位置においてメジアンフィルタを適用する。
+本研究では表\ref{tab3:data}\subref{tab3:testdata}の音声データを対象とし、以下3種類の区間に対してメジアンフィルタを適用した。フィルタの次数は11とした。
+
+\begin{enumerate}
+  \renewcommand{\theenumi}{\roman{enumi}}
+  \item 教師ラベル区間\label{chap4:teach}
+  \item 音声区間全体\label{chap4:all}
+  \item LPC残差にSVMを適用したときのリップノイズ検出区間\label{chap4:svm}
+\end{enumerate}
+
+\section{除去結果および考察}
+まず、メジアンフィルタの適用の際にリップノイズの検出が必要かどうかを検討する。
+例として図\ref{fig:lip_snd}\subref{fig:PM001}の波形にメジアンフィルタを適用した場合の波形を図\ref{fig:lip_snd_rem}に示す。\subref{fig:remlip}は\ref{chap4:teach}による除去結果、\subref{fig:remall}は\ref{chap4:all}による除去結果である。
+この波形を実際に聞き取ってみると、\subref{fig:remlip}の場合は聴感上気にならない程度にまでリップノイズが低減された。しかし、\subref{fig:remall}の場合はリップノイズ以外の高域の波形が方形波のような波形になり、音声区間でノイズが発生した。
+これより、メジアンフィルタを適用する場合にはリップノイズ区間にのみ適用する必要があり、その場合、低減可能であることが確認できる。
+
+次に、\ref{chap4:svm}による除去結果を示す。ここでは、\ref{chap3}章で示した図\ref{fig3:detecexPF01}、図\ref{fig3:detecexAM00}の区間を用いる。
+図\ref{fig3:detecexPF01}の検出区間および除去をしたスペクトログラムを図\ref{chap4:remPF01}に示す。図\ref{chap4:remPF01}は、上から音声スペクトログラム、教師ラベル区間、SVMによる検出区間、\ref{chap4:svm}により除去したスペクトログラムである。これより、無音声区間のリップノイズ検出はある程度の除去が確認できた。また、表\ref{tab3:LPC-tab}\subref{tab3:LPC-snd}で示すように無音声区間での非リップノイズの検出率が低く、リップノイズ区間外へのフィルタ適用が頻発していたが、聴感上気になるような雑音の発生などは確認されなかった。しかし、図\ref{chap4:remPF01}内に見られるような比較的大きいリップノイズにフィルタを適用した場合、ノイズが少し低減される程度で除去するまでには至らなかった。
+次に、図\ref{fig3:detecexAM00}の検出区間および除去後のスペクトログラムを図\ref{chap4:remAM00}に示す。これより、子音の発音区間において大きくスペクトルの変化が発生し、僅かではあるがノイズが発生していることが確認された。またこの区間以外にも、カ・サ・ハ行の子音発音時に同様なノイズが発生している区間があった。
+また、音声区間内では、表\ref{tab3:LPC-tab}\subref{tab3:LPC-snd}で示すようにリップノイズの検出率が高くないため、音声区間内ではリップノイズが残っている箇所が多かった。
+
+以上より、音声区間のリップノイズ検出精度の向上により、より高精度な除去が可能であると考えられる。
+
+\clearpage
+
+\begin{figure}[t]
+  \begin{center} %センタリングする
+    %\documentclass[dvipdfmx]{jsarticle}
+    %\usepackage[dvipdfmx]{graphicx}
+    \includegraphics[width=12cm,pagebox=cropbox,clip]{soturonfig2-crop.pdf}
+    \caption{メジアンフィルタの適用手法} %タイトルをつける
+    \label{chap4:shori} %ラベルをつけ図の参照を可能にする
+  \end{center}
+\end{figure}
+
+\begin{figure}[t]
+  \begin{center} %センタリングする
+    \begin{minipage}[b]{0.45\linewidth}
+      \centering
+      \includegraphics[clip,width=6cm]{PM00yokou1_med1.eps} %四角つける
+      \subcaption{リップノイズにのみ適用}\label{fig:remlip}
+    \end{minipage}
+    \begin{minipage}[b]{0.45\linewidth}
+      \centering
+      \includegraphics[clip,width=6cm]{PM00yokou1_med_all.eps} %四角つける
+      \subcaption{全体に適用}\label{fig:remall}
+    \end{minipage}
+    \caption{図\ref{fig:lip_snd}\subref{fig:PM001}に対してメジアンフィルタを適用した音声波形} %タイトルをつける
+    \label{fig:lip_snd_rem} %ラベルをつけ図の参照を可能にする
+  \end{center}
+\end{figure}
+
+\begin{figure}[t]
+  \begin{center} %センタリングする
+    %\documentclass[dvipdfmx]{jsarticle}
+    %\usepackage[dvipdfmx]{graphicx}
+    \includegraphics[width=12cm,pagebox=cropbox,clip]{soturonfig7-crop.pdf}
+    \caption{自動検出区間(\ref{chap4:svm}の場合)の除去結果(図\ref{fig3:detecexPF01}に示す区間に対応)} %タイトルをつける
+    \label{chap4:remPF01} %ラベルをつけ図の参照を可能にする
+  \end{center}
+\end{figure}
+
+\begin{figure}[t]
+  \begin{center} %センタリングする
+    %\documentclass[dvipdfmx]{jsarticle}
+    %\usepackage[dvipdfmx]{graphicx}
+    \includegraphics[width=12cm,pagebox=cropbox,clip]{soturonfig8-crop.pdf}
+    \caption{自動検出区間(\ref{chap4:svm}の場合)の除去結果(図\ref{fig3:detecexAM00}に示す区間に対応)} %タイトルをつける
+    \label{chap4:remAM00} %ラベルをつけ図の参照を可能にする
+  \end{center}
+\end{figure}
+
+%%%% むすび
+\chapter{むすび}
+LPC残差信号を入力とした非線形SVMの適用により、リップノイズの検出をある程度行うことができた。これにより、リップノイズの検出手法として機械学習の有効性を確認することができた。
+また、子音や背景ノイズ等による誤認識を修正することで、より高精度な検出ができると考えられる。
+一方、ノイズ除去については、メジアンフィルタを適用することにより音声区間内でも聴感上気にならない程度までにリップノイズの低減が可能であることが確認できた。しかし、大きなリップノイズは少し低減される程度で完全に除去するまでには至らなかった。
+したがって、正しくリップノイズ区間を検出し、大きいリップノイズも除去できる除去方法を用いることで自動的なリップノイズの低減が可能である。
+
+本研究で作成したリップノイズ検出・除去処理についてはある程度の有効性を確認することはできたが、音声区間内のリップノイズの除去を正確に行うことができず、実用性を示すまでには至らなかった。
+今後は検出器の精度向上および検出や除去の速度を考慮し、リップノイズのリアルタイム検出及び除去を目標とし、さらなる研究を進めていきたい。
+
+%%%% 参考文献
+\begin{thebibliography}{9}
+\bibitem{lipomit}
+  緒方淳、後藤真孝、伊藤克亘:''有声・無声休止区間の自動検出に基づく自由発話音声認識の性能改善手法'',2006-SLP-62(1)2006/7/7
+\bibitem{RX}
+  iZotope,Inc.:''iZotopeRX7 Mouth De-click'',\\\url{https://s3.amazonaws.com/izotopedownloads/docs/rx700/ja/mouth-de-click/index.html}
+\bibitem{svrdb}
+  高橋弘太:''話速バリエーション型音声データベースSVR-DB'', \\\url{http://www.it.cei.uec.ac.jp/SRV-DB/}
+\bibitem{repair}
+  Simon Godsill, Peter Rayner, Olivier Cappe:''Digital Audio Restoration'',June 2, 1997, DOI: 10.1007/0-306-47042-X\_4
+\end{thebibliography}
+
+\end{document}

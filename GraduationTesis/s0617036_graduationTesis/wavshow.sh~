@@ -1,0 +1,9 @@
+#!/bin/bash
+
+txtnam=yokou2.tex
+
+rm ${txtnam%.*}.dvi
+platex ${txtnam}
+dvipdfmx ${txtnam%.*}.dvi -o ${texnam%.*}.pdf
+
+### 作成したPDFを開く ###

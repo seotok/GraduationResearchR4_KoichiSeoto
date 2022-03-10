@@ -1,0 +1,7 @@
+{
+    "C_Cpp.errorSquiggles": "Disabled",
+    "files.associations": {
+        "datatype.h": "c",
+        "fftw3.h": "c"
+    }
+}
